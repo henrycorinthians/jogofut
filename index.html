@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8" />
+<title>Jogo de Futebol</title>
+<style>
+  body { margin: 0; overflow: hidden; background: #000; }
+  canvas { display: block; }
+  #scoreboard {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    font-family: Arial, sans-serif;
+    color: white;
+    font-size: 24px;
+  }
+</style>
+</head>
+<body>
+<div id="scoreboard">
+  <div>Jogador 1: <span id="player-score">0</span></div>
+  <div>Jogador 2: <span id="enemy-score">0</span></div>
+</div>
+
+<!-- Biblioteca Three.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+<!-- Seu script separado -->
+<script src="game.js"></script>
+
+</body>
+</html>
