@@ -6,10 +6,9 @@ let keys = {};
 let ballDirection = new THREE.Vector3();
 let playerSpeed = 0.2;
 let ballSpeedOnKick = 1;
-let normalBallSpeed = 0.05;
-let minDistanceToBall = 1;
 let ballRadius = 0.5;
 let victoryScreenShown = false;
+let restartButton;
 
 init();
 
@@ -59,7 +58,7 @@ function init() {
   goal2 = createGoal(15);
   scene.add(goal2);
 
-  // Jogadores maiores
+  // Jogadores
   const playerGeometry = new THREE.CylinderGeometry(0.5, 0.5, 2, 8);
   const playerMaterial1 = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
   player1 = new THREE.Mesh(playerGeometry, playerMaterial1);
@@ -124,12 +123,8 @@ function animate() {
   handleDribbleAndDefense(player2);
 
   // Chute
-  if (keys[' ']) {
-    attemptKick(player1);
-  }
-  if (keys['Enter']) {
-    attemptKick(player2);
-  }
+  if (keys[' ']) attemptKick(player1);
+  if (keys['Enter']) attemptKick(player2);
 
   // Rebote nas bordas
   if (ball.position.x >= 15 - ballRadius || ball.position.x <= -15 + ballRadius) {
@@ -147,16 +142,19 @@ function animate() {
   }
 
   // Gols
-  if (ball.position.x <= -15 && Math.abs(ball.position.z) < 2) {
+  if (ball.position.x <= -15 + ballRadius && Math.abs(ball.position.z) < 2) {
     player2Score++;
     updateScoreboard();
     resetBall();
   }
-  if (ball.position.x >= 15 && Math.abs(ball.position.z) < 2) {
+  if (ball.position.x >= 15 - ballRadius && Math.abs(ball.position.z) < 2) {
     player1Score++;
     updateScoreboard();
     resetBall();
   }
+
+  // Verificação de vitória
+  checkVictory();
 
   renderer.render(scene, camera);
 }
@@ -169,16 +167,24 @@ function limitPlayer(player) {
 function handleDribbleAndDefense(player) {
   const distance = player.position.distanceTo(ball.position);
   if (distance < 0.5 + ballRadius) {
+    // Bola fica na frente do jogador (simulando defesa)
     let direction = new THREE.Vector3().subVectors(ball.position, player.position).normalize();
-    ball.position.add(direction.multiplyScalar(0.1));
+    ball.position.copy(player.position).add(direction.multiplyScalar(0.6)); // Bola fica mais à frente
   }
 }
 
 function attemptKick(player) {
   const distance = player.position.distanceTo(ball.position);
   if (distance < 0.5 + ballRadius) {
+    // Calculando a direção correta do chute
     let direction = new THREE.Vector3().subVectors(ball.position, player.position).normalize();
-    ballDirection.copy(direction).multiplyScalar(ballSpeedOnKick);
+
+    // Ajuste: A bola vai para frente da posição do jogador, com a direção correta
+    if (player.position.z > ball.position.z) {
+      ballDirection.copy(direction).multiplyScalar(ballSpeedOnKick); // Se o jogador estiver na frente da bola
+    } else {
+      ballDirection.copy(direction).multiplyScalar(-ballSpeedOnKick); // Se o jogador estiver atrás da bola
+    }
   }
 }
 
@@ -190,75 +196,6 @@ function resetBall() {
 function updateScoreboard() {
   document.getElementById('player-score').textContent = player1Score;
   document.getElementById('enemy-score').textContent = player2Score;
-}
-function handleDribbleAndDefense(player) {
-  const distance = player.position.distanceTo(ball.position);
-  if (distance < 0.5 + ballRadius) {
-    // Bola fica na frente do jogador
-    let direction = new THREE.Vector3().subVectors(ball.position, player.position).normalize();
-    ball.position.copy(player.position).add(direction.multiplyScalar(0.6)); // 0.6 pra ela ficar um pouco à frente
-  }
-}
-function animate() {
-  requestAnimationFrame(animate);
-
-  // Movimentação dos jogadores
-  if (keys['w']) player1.position.z -= playerSpeed;
-  if (keys['s']) player1.position.z += playerSpeed;
-  if (keys['a']) player1.position.x -= playerSpeed;
-  if (keys['d']) player1.position.x += playerSpeed;
-
-  if (keys['ArrowUp']) player2.position.z -= playerSpeed;
-  if (keys['ArrowDown']) player2.position.z += playerSpeed;
-  if (keys['ArrowLeft']) player2.position.x -= playerSpeed;
-  if (keys['ArrowRight']) player2.position.x += playerSpeed;
-
-  // Limites
-  limitPlayer(player1);
-  limitPlayer(player2);
-
-  // Drible/defesa
-  handleDribbleAndDefense(player1);
-  handleDribbleAndDefense(player2);
-
-  // Chutes
-  if (keys[' ']) attemptKick(player1);
-  if (keys['Enter']) attemptKick(player2);
-
-  // Rebote do campo
-  if (ball.position.x >= 15 - ballRadius || ball.position.x <= -15 + ballRadius) {
-    ballDirection.x = -ballDirection.x;
-  }
-  if (ball.position.z >= 10 - ballRadius || ball.position.z <= -10 + ballRadius) {
-    ballDirection.z = -ballDirection.z;
-  }
-
-  // Bola anda
-  if (ballDirection.length() > 0) {
-    ball.position.add(ballDirection);
-    ballDirection.multiplyScalar(0.98); // Desacelera
-    if (ballDirection.length() < 0.01) ballDirection.set(0, 0, 0);
-  }
-
-  // Gols - ajusta para ficar mais seguro
-  if (ball.position.x <= -15 + ballRadius && Math.abs(ball.position.z) < 2) {
-    player2Score++;
-    updateScoreboard();
-    resetBall();
-  }
-  if (ball.position.x >= 15 - ballRadius && Math.abs(ball.position.z) < 2) {
-    player1Score++;
-    updateScoreboard();
-    resetBall();
-  }
-
-  renderer.render(scene, camera);
-}
-//
-//
-function updateScoreboard() {
-  document.getElementById("player-score").textContent = player1Score;
-  document.getElementById("enemy-score").textContent = player2Score;
 }
 
 function checkVictory() {
@@ -285,5 +222,38 @@ function showVictoryScreen(message) {
   victoryDiv.style.textAlign = "center";
   victoryDiv.textContent = message;
 
+  // Adiciona o botão de reiniciar
+  restartButton = document.createElement("button");
+  restartButton.textContent = "Jogar Novamente";
+  restartButton.style.marginTop = "20px";
+  restartButton.style.fontSize = "24px";
+  restartButton.style.padding = "10px 20px";
+  restartButton.style.cursor = "pointer";
+  restartButton.style.backgroundColor = "#28a745";
+  restartButton.style.color = "white";
+  restartButton.style.border = "none";
+  restartButton.style.borderRadius = "5px";
+  restartButton.addEventListener("click", restartGame);
+
+  victoryDiv.appendChild(restartButton);
   document.body.appendChild(victoryDiv);
+}
+
+function restartGame() {
+  // Resetar o placar e os jogadores
+  player1Score = 0;
+  player2Score = 0;
+  updateScoreboard();
+
+  // Resetar a bola e a posição dos jogadores
+  ball.position.set(0, 0.5, 0);
+  ballDirection.set(0, 0, 0);
+  player1.position.set(0, 1, -8);
+  player2.position.set(0, 1, 8);
+
+  // Remover a tela de vitória
+  document.body.removeChild(document.body.lastChild);
+
+  // Re-iniciar o jogo sem recriar tudo
+  victoryScreenShown = false;
 }
